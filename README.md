@@ -39,6 +39,7 @@ Create and activate a virtual environment:
 # Linux/macOS
 python -m venv venv
 source venv/bin/activate
+```
 
 
 Install Python dependencies:
