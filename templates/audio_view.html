@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio View</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Audio Player</h1>
+        
+        <!-- Audio player -->
+        <div id="waveform-container">
+            <div id="waveform"></div>
+            <div id="timeline"></div>
+        </div>
+        
+        <!-- Simple controls -->
+        <div class="audio-controls">
+            <button id="playBtn" class="control-btn">Play/Pause</button>
+            <button id="createSelectionBtn" class="control-btn">Enable Selection</button>
+            <button id="clearSelectionBtn" class="control-btn">Clear Selection</button>
+        </div>
+
+        <!-- PDF text if available -->
+        {% if pdf_text %}
+        <div class="pdf-content">
+            <h2>Text Content</h2>
+            <pre>{{ pdf_text }}</pre>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Modern way to load WaveSurfer -->
+    <script type="module">
+        import WaveSurfer from 'https://unpkg.com/wavesurfer.js@7/dist/wavesurfer.esm.js'
+        import RegionsPlugin from 'https://unpkg.com/wavesurfer.js@7/dist/plugins/regions.esm.js'
+        import TimelinePlugin from 'https://unpkg.com/wavesurfer.js@7/dist/plugins/timeline.esm.js'
+
+        // Generate a random color for regions
+        const random = (min, max) => Math.random() * (max - min) + min
+        const randomColor = () => `rgba(${random(0, 255)}, ${random(0, 255)}, ${random(0, 255)}, 0.5)`
+
+        // Create plugins
+        const regionsPlugin = RegionsPlugin.create()
+        const timelinePlugin = TimelinePlugin.create({
+            container: '#timeline'
+        })
+
+        // Create WaveSurfer instance
+        const wavesurfer = WaveSurfer.create({
+            container: '#waveform',
+            waveColor: '#4F4A85',
+            progressColor: '#383351',
+            cursorColor: '#383351',
+            barWidth: 2,
+            barRadius: 3,
+            cursorWidth: 1,
+            height: 150,
+            plugins: [regionsPlugin, timelinePlugin]
+        })
+
+        // Load audio file
+        wavesurfer.load("{{ url_for('uploaded_file', filename=audio_filename) }}")
+
+        // Enable creating regions by dragging
+        regionsPlugin.enableDragSelection({
+            color: 'rgba(255, 0, 0, 0.1)'
+        })
+
+        // Set up event listeners
+        document.getElementById('playBtn').addEventListener('click', () => {
+            wavesurfer.playPause()
+        })
+
+        document.getElementById('createSelectionBtn').addEventListener('click', () => {
+            regionsPlugin.enableDragSelection({
+                color: 'rgba(255, 0, 0, 0.1)'
+            })
+        })
+
+        document.getElementById('clearSelectionBtn').addEventListener('click', () => {
+            regionsPlugin.clearRegions()
+        })
+
+        // Handle regions
+        let activeRegion = null
+        
+        regionsPlugin.on('region-in', (region) => {
+            console.log('region-in', region)
+            activeRegion = region
+        })
+
+        regionsPlugin.on('region-out', (region) => {
+            console.log('region-out', region)
+            if (activeRegion === region) {
+                activeRegion = null
+            }
+        })
+
+        regionsPlugin.on('region-clicked', (region, e) => {
+            e.stopPropagation() // prevent click on waveform
+            activeRegion = region
+            region.play()
+            region.setOptions({ color: randomColor() })
+        })
+
+        regionsPlugin.on('region-updated', (region) => {
+            console.log('Updated region', region)
+        })
+
+        // Reset active region when clicking anywhere on the waveform
+        wavesurfer.on('interaction', () => {
+            activeRegion = null
+        })
+    </script>
+</body>
+</html>
