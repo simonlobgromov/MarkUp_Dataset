@@ -16,20 +16,44 @@
             <div id="timeline"></div>
         </div>
         
+        <!-- Time display -->
+        <div class="time-display" id="timer">00:00:000 / 00:00:000</div>
+        
         <!-- Simple controls -->
         <div class="audio-controls">
             <button id="playBtn" class="control-btn">Play/Pause</button>
             <button id="createSelectionBtn" class="control-btn">Enable Selection</button>
             <button id="clearSelectionBtn" class="control-btn">Clear Selection</button>
+            <button id="saveSelectionBtn" class="control-btn">Save Fragment</button>
+        </div>
+
+        <!-- Selection info -->
+        <div class="selection-info">
+            <p id="selectionInfoText">Select a fragment to save</p>
+        </div>
+
+        <!-- Finish project button -->
+        <div class="finish-container">
+            <a href="{{ url_for('index') }}" class="control-btn finish-btn">Finish Project</a>
         </div>
 
         <!-- PDF text if available -->
         {% if pdf_text %}
         <div class="pdf-content">
             <h2>Text Content</h2>
-            <pre>{{ pdf_text }}</pre>
+            <pre id="pdf-text-content">{{ pdf_text }}</pre>
         </div>
         {% endif %}
+    </div>
+
+    <!-- Modal dialog for saving fragments -->
+    <div id="saveModal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="closeModalBtn">&times;</span>
+            <h2>Save Fragment</h2>
+            <textarea id="commentText" rows="5" placeholder="Enter text that matches this fragment..."></textarea>
+            <button id="saveCommentBtn" class="control-btn">Save</button>
+        </div>
     </div>
 
     <!-- Modern way to load WaveSurfer -->
@@ -61,19 +85,18 @@
             plugins: [regionsPlugin, timelinePlugin]
         })
 
+        // Expose to global scope for other scripts
+        window.wavesurfer = wavesurfer;
+        window.regionsPlugin = regionsPlugin;
+        window.appData = {
+            audioUrl: "{{ url_for('uploaded_file', filename=audio_filename) }}",
+            audioFilename: "{{ audio_filename }}"
+        };
+
         // Load audio file
         wavesurfer.load("{{ url_for('uploaded_file', filename=audio_filename) }}")
 
         // Enable creating regions by dragging
-        regionsPlugin.enableDragSelection({
-            color: 'rgba(255, 0, 0, 0.1)'
-        })
-
-        // Set up event listeners
-        document.getElementById('playBtn').addEventListener('click', () => {
-            wavesurfer.playPause()
-        })
-
         document.getElementById('createSelectionBtn').addEventListener('click', () => {
             regionsPlugin.enableDragSelection({
                 color: 'rgba(255, 0, 0, 0.1)'
@@ -83,6 +106,162 @@
         document.getElementById('clearSelectionBtn').addEventListener('click', () => {
             regionsPlugin.clearRegions()
         })
+
+        document.getElementById('playBtn').addEventListener('click', () => {
+            wavesurfer.playPause()
+        })
+
+        // Save button functionality
+        const saveSelectionBtn = document.getElementById('saveSelectionBtn');
+        const modal = document.getElementById('saveModal');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const commentText = document.getElementById('commentText');
+        const saveCommentBtn = document.getElementById('saveCommentBtn');
+
+        // Show modal
+        saveSelectionBtn.addEventListener('click', () => {
+            const regions = regionsPlugin.getRegions();
+            if (regions.length === 0) {
+                alert('First select a fragment to save');
+                return;
+            }
+            
+            // Use the last selected region
+            window.selectedRegion = regions[regions.length - 1];
+            modal.style.display = 'block';
+            commentText.focus();
+        });
+
+        // Close modal
+        closeModalBtn.addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+
+        // Close modal when clicking outside
+        window.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+
+        // Save region with comment
+        saveCommentBtn.addEventListener('click', () => {
+            if (!window.selectedRegion) return;
+            
+            const region = window.selectedRegion;
+            const comment = commentText.value.trim();
+            
+            // Create data for request
+            const data = {
+                audio_filename: window.appData.audioFilename,
+                start: region.start,
+                end: region.end,
+                comment: comment
+            };
+            
+            // Send request to server
+            fetch('/save_region', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update region display as saved
+                    region.setOptions({
+                        color: 'rgba(46, 204, 113, 0.4)', // Green color for saved regions
+                        data: {
+                            saved: true,
+                            comment: comment,
+                            filename: data.filename
+                        }
+                    });
+                    
+                    // Add label with comment
+                    if (comment) {
+                        region.setContent(comment.length > 20 ? comment.substring(0, 17) + '...' : comment);
+                    } else {
+                        region.setContent('Saved');
+                    }
+                    
+                    alert(`Fragment successfully saved: ${data.filename}`);
+                    modal.style.display = 'none';
+                } else {
+                    alert('Error saving fragment: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while saving the fragment');
+            });
+        });
+
+        // Load saved regions when audio is ready
+        wavesurfer.on('ready', () => {
+            // Get saved regions from server
+            fetch(`/get_saved_regions?audio_filename=${encodeURIComponent(window.appData.audioFilename)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.regions.length > 0) {
+                    // Create regions for each saved fragment
+                    data.regions.forEach(savedRegion => {
+                        const region = regionsPlugin.addRegion({
+                            start: savedRegion.start,
+                            end: savedRegion.end,
+                            color: 'rgba(46, 204, 113, 0.4)', // Green color for saved regions
+                            data: {
+                                saved: true,
+                                comment: savedRegion.comment,
+                                filename: savedRegion.filename
+                            }
+                        });
+                        
+                        // Add label with comment
+                        if (savedRegion.comment) {
+                            region.setContent(savedRegion.comment.length > 20 ? savedRegion.comment.substring(0, 17) + '...' : savedRegion.comment);
+                        } else {
+                            region.setContent('Saved');
+                        }
+                    });
+                    
+                    console.log(`Loaded ${data.regions.length} saved fragments`);
+                }
+            })
+            .catch(error => {
+                console.error('Error loading saved fragments:', error);
+            });
+            
+            // Update timer when audio is ready
+            const timer = document.getElementById('timer');
+            if (timer) {
+                const duration = wavesurfer.getDuration();
+                timer.textContent = `00:00:000 / ${formatTime(duration)}`;
+            }
+        });
+
+        // Update timer during playback
+        wavesurfer.on('audioprocess', () => {
+            const timer = document.getElementById('timer');
+            if (timer) {
+                const current = wavesurfer.getCurrentTime();
+                const duration = wavesurfer.getDuration();
+                timer.textContent = `${formatTime(current)} / ${formatTime(duration)}`;
+            }
+        });
+
+        // Format time for display
+        function formatTime(time) {
+            if (!time && time !== 0) return '00:00:000';
+            
+            const minutes = Math.floor(time / 60);
+            const seconds = Math.floor(time % 60);
+            const milliseconds = Math.floor((time % 1) * 1000);
+            
+            return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}:${milliseconds.toString().padStart(3, '0')}`;
+        }
 
         // Handle regions
         let activeRegion = null
@@ -102,12 +281,35 @@
         regionsPlugin.on('region-clicked', (region, e) => {
             e.stopPropagation() // prevent click on waveform
             activeRegion = region
+            window.selectedRegion = region;
             region.play()
-            region.setOptions({ color: randomColor() })
+            
+            // Don't change color if saved
+            if (!region.data || !region.data.saved) {
+                region.setOptions({ color: randomColor() })
+            }
+            
+            // Update selection info
+            const selectionInfoText = document.getElementById('selectionInfoText');
+            if (selectionInfoText) {
+                const duration = region.end - region.start;
+                selectionInfoText.textContent = `Selected fragment: ${formatTime(region.start)} - ${formatTime(region.end)} (duration: ${formatTime(duration)})`;
+                
+                if (region.data && region.data.saved) {
+                    selectionInfoText.textContent += ` - SAVED (${region.data.comment || 'No text'})`;
+                }
+            }
         })
 
         regionsPlugin.on('region-updated', (region) => {
             console.log('Updated region', region)
+            
+            // Update selection info
+            const selectionInfoText = document.getElementById('selectionInfoText');
+            if (selectionInfoText && region === window.selectedRegion) {
+                const duration = region.end - region.start;
+                selectionInfoText.textContent = `Selected fragment: ${formatTime(region.start)} - ${formatTime(region.end)} (duration: ${formatTime(duration)})`;
+            }
         })
 
         // Reset active region when clicking anywhere on the waveform

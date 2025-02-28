@@ -275,3 +275,127 @@ button, .control-btn {
 .control-btn.active {
     background-color: var(--cursor-color);
 }
+/* Дополнительные стили, которые нужно добавить в конец вашего файла style.css */
+
+/* Finish button */
+.finish-container {
+    margin: 30px 0;
+    text-align: center;
+}
+
+.finish-btn {
+    background-color: #e74c3c;
+    padding: 12px 24px;
+    font-size: 16px;
+}
+
+.finish-btn:hover {
+    background-color: #c0392b;
+}
+
+/* Selection info */
+.selection-info {
+    margin: 15px 0;
+    padding: 15px;
+    background-color: #f5f5f5;
+    border-left: 4px solid #4F4A85;
+    border-radius: 0 4px 4px 0;
+}
+
+/* Time display */
+.time-display {
+    font-family: monospace;
+    background-color: #2a2a2a;
+    color: #ffffff;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 16px;
+    text-align: center;
+    margin: 10px 0;
+}
+
+/* Modal dialog for saving fragments */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 100;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+}
+
+.modal-content {
+    background-color: white;
+    margin: 15% auto;
+    padding: 20px;
+    border-radius: 5px;
+    width: 80%;
+    max-width: 600px;
+    position: relative;
+    animation: modalFadeIn 0.3s;
+}
+
+@keyframes modalFadeIn {
+    from {opacity: 0; transform: translateY(-20px);}
+    to {opacity: 1; transform: translateY(0);}
+}
+
+.modal h2 {
+    margin-top: 0;
+    color: #2a2a2a;
+}
+
+.modal textarea {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+    font-family: inherit;
+    resize: vertical;
+}
+
+.close {
+    position: absolute;
+    right: 20px;
+    top: 10px;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close:hover {
+    color: #e74c3c;
+}
+
+/* Button styling enhancement */
+.control-btn {
+    min-width: 100px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.control-btn:hover {
+    background-color: #383351;
+}
+
+.control-btn:active {
+    transform: scale(0.95);
+}
+
+.control-btn.active {
+    background-color: #ff5500;
+}
+
+/* Make control-btn work as a link */
+a.control-btn {
+    display: inline-block;
+    text-decoration: none;
+    text-align: center;
+}
