@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, send_from_directory, jsonify
+from flask import Flask, render_template, request, redirect, url_for, send_from_directory, jsonify, flash, session
 import os
 import pypdf
 import subprocess
@@ -7,17 +7,16 @@ from datetime import datetime
 import glob
 
 app = Flask(__name__)
+app.secret_key = 'audio_dataset_markup_secret_key'  # Секретный ключ для сессий и flash-сообщений
 UPLOAD_FOLDER = 'uploads'
 OUTPUT_FOLDER = 'fragments'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['OUTPUT_FOLDER'] = OUTPUT_FOLDER
 
 # Создаем необходимые директории, если их нет
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
-    
-if not os.path.exists(OUTPUT_FOLDER):
-    os.makedirs(OUTPUT_FOLDER)
+for folder in [UPLOAD_FOLDER, OUTPUT_FOLDER]:
+    if not os.path.exists(folder):
+        os.makedirs(folder)
 
 # Создаем директорию для JavaScript модулей, если её нет
 JS_FOLDER = os.path.join('static', 'js')
@@ -26,68 +25,107 @@ if not os.path.exists(JS_FOLDER):
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
+    # Передаем текущий год для отображения в футере
+    current_year = datetime.now().year
+    
     if request.method == 'POST':
+        # Проверяем наличие имени пользователя
+        username = request.form.get('username')
+        if not username:
+            return render_template('index.html', error="Введите имя пользователя", current_year=current_year)
+        
+        # Сохраняем имя пользователя в сессии
+        session['username'] = username
+        
         if 'audio' not in request.files:
-            return render_template('index.html', error="No audio file uploaded")
+            return render_template('index.html', error="Не выбран аудио файл", current_year=current_year)
         
         audio_file = request.files['audio']
         pdf_file = request.files.get('pdf')
         
         if audio_file.filename == '':
-            return render_template('index.html', error="No audio file selected")
+            return render_template('index.html', error="Не выбран аудио файл", current_year=current_year)
             
-        # Check file extensions
+        # Проверка расширений файлов
         allowed_audio = {'mp3', 'wav', 'ogg', 'm4a'}
         allowed_pdf = {'pdf'}
         
         if not ('.' in audio_file.filename and 
                 audio_file.filename.rsplit('.', 1)[1].lower() in allowed_audio):
-            return render_template('index.html', error="Invalid audio file format")
+            return render_template('index.html', error="Неверный формат аудио файла", current_year=current_year)
 
         if pdf_file and pdf_file.filename != '':
             if not ('.' in pdf_file.filename and 
                     pdf_file.filename.rsplit('.', 1)[1].lower() in allowed_pdf):
-                return render_template('index.html', error="Invalid PDF file format")
+                return render_template('index.html', error="Неверный формат PDF файла", current_year=current_year)
 
         try:
+            # Сохраняем аудио файл
             audio_path = os.path.join(app.config['UPLOAD_FOLDER'], audio_file.filename)
             audio_file.save(audio_path)
 
-            pdf_path = None
+            pdf_filename = None
             if pdf_file and pdf_file.filename != '':
+                # Сохраняем PDF файл
                 pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], pdf_file.filename)
                 pdf_file.save(pdf_path)
+                pdf_filename = pdf_file.filename
 
             return redirect(url_for('audio_view', 
-                                  audio_filename=audio_file.filename,
-                                  pdf_filename=pdf_file.filename if pdf_file and pdf_file.filename else None))
+                                   audio_filename=audio_file.filename,
+                                   pdf_filename=pdf_filename))
         except Exception as e:
-            return render_template('index.html', error=f"Error uploading files: {str(e)}")
+            return render_template('index.html', error=f"Ошибка при загрузке файлов: {str(e)}", current_year=current_year)
 
-    return render_template('index.html')
+    return render_template('index.html', current_year=current_year)
 
 @app.route('/audio_view')
 def audio_view():
     audio_filename = request.args.get('audio_filename')
     pdf_filename = request.args.get('pdf_filename')
+    
+    # Проверяем, есть ли имя пользователя в сессии
+    username = session.get('username')
+    if not username:
+        flash('Пожалуйста, введите ваше имя перед началом работы с аудио', 'warning')
+        return redirect(url_for('index'))
+
+    # Проверка на существование аудиофайла
+    audio_path = os.path.join(app.config['UPLOAD_FOLDER'], audio_filename)
+    if not os.path.exists(audio_path):
+        flash('Аудио файл не найден', 'error')
+        return redirect(url_for('index'))
 
     pdf_text = None
     if pdf_filename:
         pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], pdf_filename)
-        with open(pdf_path, 'rb') as file:
-            reader = pypdf.PdfReader(file)
-            pdf_text = "".join([page.extract_text() for page in reader.pages])
+        if os.path.exists(pdf_path):
+            try:
+                with open(pdf_path, 'rb') as file:
+                    reader = pypdf.PdfReader(file)
+                    pdf_text = "".join([page.extract_text() for page in reader.pages])
+            except Exception as e:
+                flash(f'Ошибка при чтении PDF: {str(e)}', 'warning')
 
-    return render_template('audio_view.html', audio_filename=audio_filename, pdf_text=pdf_text)
+    # Передаем текущий год для отображения в футере
+    current_year = datetime.now().year
+    
+    return render_template('audio_view.html', 
+                           audio_filename=audio_filename, 
+                           pdf_text=pdf_text, 
+                           username=username,
+                           current_year=current_year)
 
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
+    """Функция для доступа к загруженным файлам"""
     response = send_from_directory(app.config['UPLOAD_FOLDER'], filename)
     response.headers['Accept-Ranges'] = 'bytes'  # Enable partial content
     return response
 
 @app.route('/fragments/<filename>')
 def fragment_file(filename):
+    """Функция для доступа к сохраненным фрагментам"""
     return send_from_directory(app.config['OUTPUT_FOLDER'], filename)
 
 @app.route('/save_region', methods=['POST'])
@@ -98,6 +136,7 @@ def save_region():
         start = data.get('start')
         end = data.get('end')
         comment = data.get('comment', '')
+        username = data.get('username') or session.get('username', 'Anonymous')
         
         # Проверка входных данных
         if not audio_filename or start is None or end is None:
@@ -114,8 +153,7 @@ def save_region():
         output_path = os.path.join(app.config['OUTPUT_FOLDER'], new_filename)
         
         # Используем FFmpeg для обрезки аудио
-        # Нужно убедиться, что FFmpeg установлен в системе
-        start_sec = start  # start уже в секундах
+        start_sec = start
         duration = end - start
         
         cmd = [
@@ -134,7 +172,7 @@ def save_region():
         if process.returncode != 0:
             return jsonify({'success': False, 'error': 'Ошибка FFmpeg: ' + stderr.decode('utf-8')})
         
-        # Сохраняем информацию о фрагменте в JSON-файл для последующего использования
+        # Сохраняем информацию о фрагменте в JSON-файл вместе с именем пользователя
         metadata_filename = f"{base_name}_{timestamp}.json"
         metadata_path = os.path.join(app.config['OUTPUT_FOLDER'], metadata_filename)
         
@@ -145,7 +183,8 @@ def save_region():
             'duration': duration,
             'comment': comment,
             'timestamp': timestamp,
-            'output_file': new_filename
+            'output_file': new_filename,
+            'username': username
         }
         
         with open(metadata_path, 'w', encoding='utf-8') as f:
@@ -188,7 +227,8 @@ def get_saved_regions():
                         'start': metadata.get('start_time'),
                         'end': metadata.get('end_time'),
                         'comment': metadata.get('comment', ''),
-                        'filename': metadata.get('output_file')
+                        'filename': metadata.get('output_file'),
+                        'username': metadata.get('username', 'Anonymous')
                     })
         
         return jsonify({'success': True, 'regions': regions})

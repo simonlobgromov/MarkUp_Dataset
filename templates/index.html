@@ -3,46 +3,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Загрузка файлов</title>
+    <title>Audio Dataset Markup</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-    
-    <!-- Add WaveSurfer.js and its plugins -->
-    <script src="https://unpkg.com/wavesurfer.js@7/dist/wavesurfer.min.js"></script>
-    <script src="https://unpkg.com/wavesurfer.js@7/dist/plugins/regions.js"></script>
-    
-    <!-- Your custom scripts -->
-    <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
-    <script src="{{ url_for('static', filename='js/audio-player.js') }}" defer></script>
-    <script src="{{ url_for('static', filename='js/zoom-handler.js') }}" defer></script>
-    <script src="{{ url_for('static', filename='js/ui-handler.js') }}" defer></script>
-    <script src="{{ url_for('static', filename='js/regions-handler.js') }}" defer></script>
-    <script src="{{ url_for('static', filename='js/storage.js') }}" defer></script>
 </head>
 <body>
     <div class="container">
-        <h1>Audio Dataset Markup</h1>
+        <div class="header-container">
+            <h1>Audio Dataset Markup</h1>
+            <p class="subtitle">Инструмент разметки аудиоданных для создания датасетов</p>
+        </div>
         
-        <div class="form-container">
-            <form method="POST" enctype="multipart/form-data">
-                <div class="form-group">
-                    <label for="audio">Выберите аудио файл:</label>
-                    <input type="file" id="audio" name="audio" accept=".wav, .m4a" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="pdf">Выберите PDF файл с текстом (опционально):</label>
-                    <input type="file" id="pdf" name="pdf" accept=".pdf">
-                </div>
-                
-                <button type="submit">Открыть файлы</button>
-            </form>
+        <div class="main-content">
+            <div class="form-container">
+                <form method="POST" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label for="username">Имя пользователя:</label>
+                        <input type="text" id="username" name="username" required placeholder="Введите ваше имя">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="audio">Выберите аудио файл:</label>
+                        <div class="file-input-container">
+                            <input type="file" id="audio" name="audio" accept=".wav, .mp3, .ogg, .m4a" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="pdf">Выберите PDF файл с текстом (опционально):</label>
+                        <div class="file-input-container">
+                            <input type="file" id="pdf" name="pdf" accept=".pdf">
+                        </div>
+                    </div>
+                    
+                    <div class="button-group">
+                        <button type="submit" class="control-btn primary-btn">Открыть файлы</button>
+                    </div>
+                </form>
+            </div>
         </div>
+        
+        <!-- Show flash messages if any -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash-message {{ category }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+        
+        {% if error %}
+            <div class="error-message">
+                {{ error }}
+            </div>
+        {% endif %}
     </div>
-    {% if error %}
-        <div class="error-message">
-            {{ error }}
-        </div>
-    {% endif %}
+    
+    <footer class="footer">
+        <p>&copy; {{ current_year }} Audio Dataset Markup Tool</p>
+    </footer>
 </body>
 </html>

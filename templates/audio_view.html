@@ -8,7 +8,10 @@
 </head>
 <body>
     <div class="container">
-        <h1>Audio Player</h1>
+        <div class="header-container">
+            <h1>Audio Player</h1>
+            <!-- Удалено отображение имени пользователя -->
+        </div>
         
         <!-- Audio player -->
         <div id="waveform-container">
@@ -61,6 +64,7 @@
         <div class="modal-content">
             <span class="close" id="closeModalBtn">&times;</span>
             <h2>Save Fragment</h2>
+            <!-- Удалено отображение имени пользователя в модальном окне -->
             <textarea id="commentText" rows="5" placeholder="Enter text that matches this fragment..."></textarea>
             <button id="saveCommentBtn" class="control-btn">Save</button>
         </div>
@@ -112,12 +116,13 @@
         window.wavesurfer = wavesurfer;
         window.regionsPlugin = regionsPlugin;
         window.appData = {
-            audioUrl: "{{ url_for('uploaded_file', filename=audio_filename) }}",
-            audioFilename: "{{ audio_filename }}"
+            audioFilename: "{{ audio_filename }}",
+            username: "{{ username }}"
         };
 
         // Load audio file
-        wavesurfer.load("{{ url_for('uploaded_file', filename=audio_filename) }}")
+        const audioUrl = "{{ url_for('uploaded_file', filename=audio_filename) }}";
+        wavesurfer.load(audioUrl);
 
         // Enable creating regions by dragging
         document.getElementById('createSelectionBtn').addEventListener('click', () => {
@@ -194,9 +199,6 @@
                 const scrollLeft = waveformContainer.scrollLeft;
                 waveformContainer.scrollLeft = scrollLeft - delta;
                 
-                // If your waveform has a scroll method, you can use this instead
-                // wavesurfer.setScrollTime(wavesurfer.getScrollTime() - delta / state.currentZoom);
-                
                 e.preventDefault();
             }
         });
@@ -251,7 +253,8 @@
                 audio_filename: window.appData.audioFilename,
                 start: region.start,
                 end: region.end,
-                comment: comment
+                comment: comment,
+                username: window.appData.username
             };
             
             // Send request to server
@@ -271,11 +274,12 @@
                         data: {
                             saved: true,
                             comment: comment,
-                            filename: data.filename
+                            filename: data.filename,
+                            username: window.appData.username
                         }
                     });
                     
-                    // Add label with comment
+                    // Add label with comment only (без имени пользователя)
                     if (comment) {
                         region.setContent(comment.length > 20 ? comment.substring(0, 17) + '...' : comment);
                     } else {
@@ -312,16 +316,20 @@
                             data: {
                                 saved: true,
                                 comment: savedRegion.comment,
-                                filename: savedRegion.filename
+                                filename: savedRegion.filename,
+                                username: savedRegion.username || window.appData.username
                             }
                         });
                         
-                        // Add label with comment
-                        if (savedRegion.comment) {
-                            region.setContent(savedRegion.comment.length > 20 ? savedRegion.comment.substring(0, 17) + '...' : savedRegion.comment);
-                        } else {
-                            region.setContent('Saved');
+                        // Add label with comment only (без имени пользователя)
+                        let content = savedRegion.comment;
+                        if (content && content.length > 20) {
+                            content = content.substring(0, 17) + '...';
+                        } else if (!content) {
+                            content = 'Saved';
                         }
+                        
+                        region.setContent(content);
                     });
                     
                     console.log(`Loaded ${data.regions.length} saved fragments`);
@@ -386,7 +394,7 @@
                 region.setOptions({ color: randomColor() })
             }
             
-            // Update selection info
+            // Update selection info (без имени пользователя)
             const selectionInfoText = document.getElementById('selectionInfoText');
             if (selectionInfoText) {
                 const duration = region.end - region.start;
@@ -401,11 +409,15 @@
         regionsPlugin.on('region-updated', (region) => {
             console.log('Updated region', region)
             
-            // Update selection info
+            // Update selection info (без имени пользователя)
             const selectionInfoText = document.getElementById('selectionInfoText');
             if (selectionInfoText && region === window.selectedRegion) {
                 const duration = region.end - region.start;
                 selectionInfoText.textContent = `Selected fragment: ${formatTime(region.start)} - ${formatTime(region.end)} (duration: ${formatTime(duration)})`;
+                
+                if (region.data && region.data.saved) {
+                    selectionInfoText.textContent += ` - SAVED (${region.data.comment || 'No text'})`;
+                }
             }
         })
 
@@ -441,5 +453,9 @@
             }
         });
     </script>
+    
+    <footer class="footer">
+        <p>&copy; {{ current_year if current_year else '2025' }} Audio Dataset Markup Tool</p>
+    </footer>
 </body>
 </html>
