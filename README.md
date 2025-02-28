@@ -27,8 +27,8 @@ A web application for audio dataset annotation and segmentation. This tool allow
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/yourusername/audio-dataset-markup.git
-cd audio-dataset-markup
+git clone git@github.com:simonlobgromov/MarkUp_Dataset.git
+cd MarkUp_Dataset
 ```
 
 ### 2. Set up Python environment
@@ -40,10 +40,6 @@ Create and activate a virtual environment:
 python -m venv venv
 source venv/bin/activate
 
-# Windows
-python -m venv venv
-venv\Scripts\activate
-```
 
 Install Python dependencies:
 
