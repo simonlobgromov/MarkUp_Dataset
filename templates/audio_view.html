@@ -10,13 +10,13 @@
     <div class="container">
         <div class="header-container">
             <h1>Audio Player</h1>
-            <!-- Удалено отображение имени пользователя -->
+            <!-- Имя пользователя скрыто по требованию -->
         </div>
         
         <!-- Audio player -->
         <div id="waveform-container">
             <div id="waveform"></div>
-            <div id="timeline"></div>
+            <!-- Таймлайн будет создан плагином автоматически -->
         </div>
         
         <!-- Time display -->
@@ -64,7 +64,7 @@
         <div class="modal-content">
             <span class="close" id="closeModalBtn">&times;</span>
             <h2>Save Fragment</h2>
-            <!-- Удалено отображение имени пользователя в модальном окне -->
+            <!-- Имя пользователя скрыто в модальном окне -->
             <textarea id="commentText" rows="5" placeholder="Enter text that matches this fragment..."></textarea>
             <button id="saveCommentBtn" class="control-btn">Save</button>
         </div>
@@ -92,13 +92,7 @@
             lastX: 0
         };
 
-        // Create plugins
-        const regionsPlugin = RegionsPlugin.create()
-        const timelinePlugin = TimelinePlugin.create({
-            container: '#timeline'
-        })
-
-        // Create WaveSurfer instance
+        // Create WaveSurfer instance с плагинами
         const wavesurfer = WaveSurfer.create({
             container: '#waveform',
             waveColor: '#4F4A85',
@@ -108,11 +102,17 @@
             barRadius: 3,
             cursorWidth: 1,
             height: 150,
-            plugins: [regionsPlugin, timelinePlugin],
-            minPxPerSec: 50
+            minPxPerSec: 50,
+            plugins: [
+                RegionsPlugin.create(),
+                TimelinePlugin.create()
+            ]
         })
 
-        // Expose to global scope for other scripts
+        // Сохраняем ссылки на плагины
+        const regionsPlugin = wavesurfer.plugins[0]
+        
+        // Экспортируем в глобальную область для доступа из других скриптов
         window.wavesurfer = wavesurfer;
         window.regionsPlugin = regionsPlugin;
         window.appData = {
@@ -121,8 +121,7 @@
         };
 
         // Load audio file
-        const audioUrl = "{{ url_for('uploaded_file', filename=audio_filename) }}";
-        wavesurfer.load(audioUrl);
+        wavesurfer.load("{{ url_for('uploaded_file', filename=audio_filename) }}")
 
         // Enable creating regions by dragging
         document.getElementById('createSelectionBtn').addEventListener('click', () => {

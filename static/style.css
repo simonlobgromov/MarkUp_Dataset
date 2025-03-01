@@ -10,6 +10,7 @@
     --highlight-color: #ffd700;
     --active-fragment-color: rgba(255, 215, 0, 0.3);
     --hover-fragment-color: rgba(255, 215, 0, 0.2);
+    --danger-color: #e74c3c;
 }
 
 /* Container and general layout */
@@ -25,6 +26,7 @@
     padding: 20px;
     border-radius: 4px;
     margin-bottom: 20px;
+    overflow-x: auto;
 }
 
 #waveform {
@@ -34,14 +36,21 @@
     padding: 10px;
 }
 
-#timeline {
+/* Стиль для таймлайна, созданного WaveSurfer */
+.wavesurfer-timeline {
     height: 30px;
-    width: 100%;
-    background-color: var(--dark-gray);
+    background-color: #333333;
+    color: white !important;
+    margin-bottom: 10px;
+    font-family: monospace;
+    font-size: 11px;
     border-radius: 4px;
-    margin-bottom: 15px;
-    overflow: hidden;
-    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+}
+
+/* Делаем текст на таймлайне белым */
+.wavesurfer-timeline text {
+    fill: white !important;
+    color: white !important;
 }
 
 /* WaveSurfer region styles */
@@ -89,6 +98,8 @@
     border-radius: 4px;
     display: flex;
     gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
 }
 
 .audio-controls {
@@ -108,19 +119,40 @@ input[type="range"] {
 /* Button styling */
 button, .control-btn {
     padding: 8px 16px;
-    background-color: #4F4A85;
+    background-color: var(--primary-color);
     color: white;
     border: none;
     border-radius: 4px;
     cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.1s ease;
 }
 
 .control-btn:hover {
-    background-color: #383351;
+    background-color: var(--primary-hover);
 }
 
 .control-btn:active {
     transform: scale(0.95);
+}
+
+.control-btn.active {
+    background-color: var(--cursor-color);
+}
+
+/* Finish button */
+.finish-container {
+    margin: 30px 0;
+    text-align: center;
+}
+
+.finish-btn {
+    background-color: var(--danger-color);
+    padding: 12px 24px;
+    font-size: 16px;
+}
+
+.finish-btn:hover {
+    background-color: #c0392b;
 }
 
 /* PDF content area */
@@ -136,161 +168,16 @@ button, .control-btn {
     word-wrap: break-word;
 }
 
-/* Error styling */
-.error-message {
-    color: red;
-    padding: 10px;
-    margin: 10px 0;
-    border: 1px solid red;
-    border-radius: 4px;
-    background-color: rgba(255, 0, 0, 0.1);
-}
-
-/* Hotkeys help box */
-.hotkeys-help {
-    background-color: var(--dark-gray);
-    padding: 10px;
-    margin-top: 20px;
-    border-radius: 4px;
-    font-size: 12px;
-}
-
-.hotkeys-help h3 {
-    margin-top: 0;
-    color: var(--white);
-}
-
-.hotkeys-help table {
-    width: 100%;
-}
-
-.hotkeys-help th, 
-.hotkeys-help td {
-    padding: 3px 8px;
-    text-align: left;
-}
-
-.hotkeys-help .key {
-    background-color: var(--light-gray);
-    padding: 2px 6px;
-    border-radius: 3px;
-    font-family: monospace;
-    font-weight: bold;
-}
-
-/* Modal animations */
-.modal-content {
-    animation: fadeIn 0.2s ease;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-/* Audio playback and fragment highlighting */
-.fragment {
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-    padding: 2px 4px;
-    border-radius: 2px;
-    margin: 0 -4px;
-}
-
-.fragment:hover {
-    background-color: var(--hover-fragment-color);
-}
-
-.fragment.active {
-    background-color: var(--active-fragment-color);
-}
-
-.fragment.playing {
-    background-color: var(--highlight-color);
-}
-
-/* Improve WaveSurfer visualization */
-#waveform-container wave {
-    background: transparent !important;
-}
-
-/* Playback controls enhancement */
-.playback-speed {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.playback-speed select {
-    padding: 5px;
-    border-radius: 4px;
-    background-color: var(--light-gray);
-    color: var(--white);
-    border: none;
-}
-
 /* Time display */
 .time-display {
     font-family: monospace;
-    color: var(--white);
-    background-color: var(--light-gray);
-    padding: 5px 10px;
-    border-radius: 4px;
-    font-size: 14px;
-}
-
-/* Progress indicator */
-.progress-bar {
-    height: 4px;
-    background-color: var(--light-gray);
-    border-radius: 2px;
-    overflow: hidden;
-    margin: 10px 0;
-}
-
-.progress-bar-fill {
-    height: 100%;
-    background-color: var(--cursor-color);
-    width: 0%;
-    transition: width 0.1s linear;
-}
-
-.selection-info {
-    margin: 10px 0;
-    padding: 10px;
     background-color: var(--dark-gray);
     color: var(--white);
+    padding: 8px 12px;
     border-radius: 4px;
-}
-
-.control-btn {
-    min-width: 100px;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-}
-
-.control-btn.active {
-    background-color: var(--cursor-color);
-}
-/* Дополнительные стили, которые нужно добавить в конец вашего файла style.css */
-
-/* Finish button */
-.finish-container {
-    margin: 30px 0;
-    text-align: center;
-}
-
-.finish-btn {
-    background-color: #e74c3c;
-    padding: 12px 24px;
     font-size: 16px;
-}
-
-.finish-btn:hover {
-    background-color: #c0392b;
+    text-align: center;
+    margin: 10px 0;
 }
 
 /* Selection info */
@@ -298,20 +185,21 @@ button, .control-btn {
     margin: 15px 0;
     padding: 15px;
     background-color: #f5f5f5;
-    border-left: 4px solid #4F4A85;
+    border-left: 4px solid var(--primary-color);
     border-radius: 0 4px 4px 0;
 }
 
-/* Time display */
-.time-display {
-    font-family: monospace;
-    background-color: #2a2a2a;
-    color: #ffffff;
-    padding: 8px 12px;
-    border-radius: 4px;
-    font-size: 16px;
-    text-align: center;
-    margin: 10px 0;
+/* Zoom slider */
+.zoom-slider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-grow: 1;
+}
+
+.zoom-slider input {
+    flex-grow: 1;
+    max-width: 300px;
 }
 
 /* Modal dialog for saving fragments */
@@ -344,7 +232,7 @@ button, .control-btn {
 
 .modal h2 {
     margin-top: 0;
-    color: #2a2a2a;
+    color: var(--dark-gray);
 }
 
 .modal textarea {
@@ -367,79 +255,64 @@ button, .control-btn {
 }
 
 .close:hover {
-    color: #e74c3c;
+    color: var(--danger-color);
 }
 
-/* Button styling enhancement */
-.control-btn {
-    min-width: 100px;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    transition: background-color 0.2s ease, transform 0.1s ease;
+/* Error styling */
+.error-message {
+    color: red;
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid red;
+    border-radius: 4px;
+    background-color: rgba(255, 0, 0, 0.1);
 }
-
-.control-btn:hover {
-    background-color: #383351;
-}
-
-.control-btn:active {
-    transform: scale(0.95);
-}
-
-.control-btn.active {
-    background-color: #ff5500;
-}
-
-/* Make control-btn work as a link */
-a.control-btn {
-    display: inline-block;
-    text-decoration: none;
-    text-align: center;
-}
-
-/* Стили для элементов масштабирования - добавьте их в конец style.css */
 
 /* Waveform container for dragging */
 #waveform-container {
     cursor: grab;
     overflow-x: auto;
     overflow-y: hidden;
+    position: relative;
 }
 
 #waveform-container.dragging {
     cursor: grabbing;
 }
 
-/* Zoom slider */
-.zoom-slider {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-grow: 1;
+/* Header container */
+.header-container {
+    text-align: center;
+    margin-bottom: 40px;
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 20px;
 }
 
-.zoom-slider input {
-    flex-grow: 1;
-    max-width: 300px;
+/* Footer */
+.footer {
+    text-align: center;
+    margin-top: 50px;
+    padding: 20px;
+    color: #666;
+    font-size: 14px;
+    border-top: 1px solid #e0e0e0;
 }
 
-/* Improve the waveform appearance during zooming */
-#waveform wave {
-    overflow: hidden;
-}
-
-/* Responsive design for zoom controls */
+/* Responsive design */
 @media (max-width: 768px) {
     .audio-controls {
-        flex-wrap: wrap;
+        flex-direction: column;
+        align-items: stretch;
     }
     
     .zoom-slider {
         width: 100%;
         margin-top: 10px;
+    }
+    
+    .modal-content {
+        width: 95%;
+        margin: 5% auto;
     }
 }
 
@@ -473,35 +346,16 @@ input[type="range"]::-moz-range-thumb {
     border: none;
 }
 
-/* Добавьте эти стили в конец вашего style.css файла */
+/* Стили для восстановления главной страницы */
+/* Добавьте эти стили в конец style.css */
 
-/* Улучшенный дизайн начальной страницы */
-.header-container {
-    text-align: center;
-    margin-bottom: 40px;
-    border-bottom: 1px solid #e0e0e0;
-    padding-bottom: 20px;
-}
-
-.subtitle {
-    color: #666;
-    font-size: 18px;
-    margin-top: -10px;
-}
-
-.main-content {
-    display: flex;
-    flex-direction: column;
-    gap: 30px;
-    max-width: 800px;
-    margin: 0 auto;
-}
-
+/* Стили для формы на главной странице */
 .form-container {
     background-color: #f8f9fa;
     padding: 30px;
     border-radius: 8px;
     box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    margin-bottom: 30px;
 }
 
 .form-group {
@@ -548,95 +402,17 @@ input[type="range"]::-moz-range-thumb {
     margin-top: 30px;
 }
 
-.primary-btn {
-    background-color: #4F4A85;
-    color: white;
-    padding: 12px 30px;
-    font-size: 16px;
-    border-radius: 5px;
-    border: none;
-    cursor: pointer;
-    transition: background-color 0.2s ease, transform 0.1s ease;
-}
-
-.primary-btn:hover {
-    background-color: #383351;
-}
-
-.primary-btn:active {
-    transform: scale(0.98);
-}
-
-.secondary-btn {
-    background-color: #6c757d;
-    color: white;
-    padding: 10px 20px;
-    border-radius: 5px;
-    text-decoration: none;
-    display: inline-block;
-    text-align: center;
-    transition: background-color 0.2s ease;
-}
-
-.secondary-btn:hover {
-    background-color: #5a6268;
-}
-
-.projects-link {
-    text-align: center;
-    margin: 20px 0;
-}
-
-.footer {
-    text-align: center;
-    margin-top: 50px;
-    padding: 20px;
-    color: #666;
-    font-size: 14px;
-    border-top: 1px solid #e0e0e0;
-}
-
-/* Адаптивный дизайн */
-@media (max-width: 768px) {
-    .form-container {
-        padding: 20px;
-    }
-    
-    .main-content {
-        padding: 0 15px;
-    }
-}
-
-/* Стили для отображения информации о пользователе */
-.user-info {
-    font-size: 14px;
-    color: #666;
-    margin-top: -15px;
-    margin-bottom: 20px;
-    text-align: center;
-}
-
-.username {
-    font-weight: 700;
-    color: #4F4A85;
-}
-
-.modal-info {
-    font-size: 14px;
-    color: #666;
-    margin-bottom: 15px;
-}
-
-/* Улучшенный стиль для header на странице с аудио */
-.header-container {
+.main-content {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    margin-bottom: 20px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid #e0e0e0;
+    gap: 30px;
+    max-width: 800px;
+    margin: 0 auto;
 }
 
-.header-container h1 {
-    margin-bottom: 5px;
+.subtitle {
+    color: #666;
+    font-size: 18px;
+    margin-top: -10px;
+    text-align: center;
 }
