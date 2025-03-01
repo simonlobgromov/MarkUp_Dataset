@@ -491,3 +491,74 @@ input[type="range"]::-moz-range-thumb {
     font-size: 16px; /* Базовый размер шрифта */
     transition: font-size 0.2s ease; /* Плавное изменение размера */
 }
+/* Стили для интеграции функционала выделения текста */
+
+/* Контейнер с прокруткой для PDF-текста */
+.pdf-content-scroll {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    background-color: white;
+    margin-top: 10px;
+}
+
+/* Заголовок PDF с элементами управления */
+.pdf-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.pdf-header h2 {
+    margin: 0;
+}
+
+/* Элементы управления для работы с текстом */
+.text-selection-controls {
+    display: flex;
+    gap: 5px;
+}
+
+/* Подсвеченный текст */
+.highlighted-text {
+    background-color: rgba(46, 204, 113, 0.3); /* Зеленый цвет с прозрачностью */
+    border-radius: 2px;
+    padding: 0 2px;
+    margin: 0 -2px;
+    cursor: pointer;
+    position: relative;
+    border-bottom: 1px dashed #2ecc71;
+}
+
+.highlighted-text:hover {
+    background-color: rgba(46, 204, 113, 0.5); /* Ярче при наведении */
+}
+
+.highlighted-text:active {
+    background-color: rgba(46, 204, 113, 0.7); /* Еще ярче при нажатии */
+}
+
+/* Всплывающая подсказка с названием аудио-фрагмента */
+.highlighted-text::after {
+    content: attr(data-fragment) " (" attr(data-time) ")";
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+    z-index: 100;
+    white-space: nowrap;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.highlighted-text:hover::after {
+    opacity: 1;
+}
