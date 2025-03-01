@@ -416,3 +416,30 @@ input[type="range"]::-moz-range-thumb {
     margin-top: -10px;
     text-align: center;
 }
+/* PDF content area with scrolling */
+.pdf-content {
+    background-color: #f5f5f5;
+    padding: 20px;
+    border-radius: 4px;
+    margin-top: 20px;
+}
+
+.pdf-content h2 {
+    margin-top: 0;
+    margin-bottom: 15px;
+}
+
+.pdf-content-scroll {
+    max-height: 400px; /* Фиксированная высота блока */
+    overflow-y: auto; /* Вертикальная прокрутка */
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    background-color: white;
+}
+
+.pdf-content pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    padding: 15px;
+    margin: 0;
+}

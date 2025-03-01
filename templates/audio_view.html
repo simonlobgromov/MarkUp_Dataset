@@ -54,9 +54,18 @@
         {% if pdf_text %}
         <div class="pdf-content">
             <h2>Text Content</h2>
-            <pre id="pdf-text-content">{{ pdf_text }}</pre>
+            <div class="pdf-content-scroll">
+                <pre>{{ pdf_text }}</pre>
+            </div>
         </div>
         {% endif %}
+
+        <!-- {% if pdf_text %}
+        <div class="pdf-content">
+            <h2>Text Content</h2>
+            <pre id="pdf-text-content">{{ pdf_text }}</pre>
+        </div>
+        {% endif %} -->
     </div>
 
     <!-- Modal dialog for saving fragments -->
