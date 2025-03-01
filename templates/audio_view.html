@@ -51,21 +51,32 @@
         </div>
 
         <!-- PDF text if available -->
+
         {% if pdf_text %}
         <div class="pdf-content">
+            <div class="pdf-header">
+                <h2>Text Content</h2>
+                <div class="pdf-controls">
+                    <button id="zoomOutPdf" class="control-btn zoom-btn">A-</button>
+                    <button id="resetZoomPdf" class="control-btn zoom-btn">A</button>
+                    <button id="zoomInPdf" class="control-btn zoom-btn">A+</button>
+                </div>
+            </div>
+            <div class="pdf-content-scroll">
+                <pre id="pdfTextContent">{{ pdf_text }}</pre>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- {% if pdf_text %} -->
+        <!-- <div class="pdf-content">
             <h2>Text Content</h2>
             <div class="pdf-content-scroll">
                 <pre>{{ pdf_text }}</pre>
             </div>
         </div>
-        {% endif %}
-
-        <!-- {% if pdf_text %}
-        <div class="pdf-content">
-            <h2>Text Content</h2>
-            <pre id="pdf-text-content">{{ pdf_text }}</pre>
-        </div>
         {% endif %} -->
+
     </div>
 
     <!-- Modal dialog for saving fragments -->
@@ -459,6 +470,85 @@
                 e.preventDefault();
                 modal.style.display = 'none';
             }
+        });
+
+        // PDF Zoom функционал
+        function initializePdfZoom() {
+            const pdfTextContent = document.getElementById('pdfTextContent');
+            const zoomInBtn = document.getElementById('zoomInPdf');
+            const zoomOutBtn = document.getElementById('zoomOutPdf');
+            const resetZoomBtn = document.getElementById('resetZoomPdf');
+            
+            if (!pdfTextContent || !zoomInBtn || !zoomOutBtn || !resetZoomBtn) return;
+            
+            // Базовый размер шрифта и шаг изменения
+            const defaultFontSize = 16;
+            const zoomStep = 2;
+            let currentFontSize = defaultFontSize;
+            
+            // Минимальный и максимальный размеры шрифта
+            const minFontSize = 12;
+            const maxFontSize = 32;
+            
+            // Функция для обновления размера шрифта
+            function updateFontSize() {
+                pdfTextContent.style.fontSize = `${currentFontSize}px`;
+                
+                // Отключаем кнопки, если достигли пределов
+                zoomInBtn.disabled = currentFontSize >= maxFontSize;
+                zoomOutBtn.disabled = currentFontSize <= minFontSize;
+            }
+            
+            // Увеличение размера
+            zoomInBtn.addEventListener('click', () => {
+                if (currentFontSize < maxFontSize) {
+                    currentFontSize += zoomStep;
+                    updateFontSize();
+                }
+            });
+            
+            // Уменьшение размера
+            zoomOutBtn.addEventListener('click', () => {
+                if (currentFontSize > minFontSize) {
+                    currentFontSize -= zoomStep;
+                    updateFontSize();
+                }
+            });
+            
+            // Сброс к базовому размеру
+            resetZoomBtn.addEventListener('click', () => {
+                currentFontSize = defaultFontSize;
+                updateFontSize();
+            });
+            
+            // Обработчик колеса мыши для масштабирования
+            pdfTextContent.closest('.pdf-content-scroll').addEventListener('wheel', (event) => {
+                // Масштабирование с помощью колеса мыши при нажатой клавише Ctrl
+                if (event.ctrlKey || event.metaKey) {
+                    event.preventDefault(); // Предотвращаем стандартную прокрутку
+                    
+                    if (event.deltaY < 0 && currentFontSize < maxFontSize) {
+                        // Прокрутка вверх - увеличение масштаба
+                        currentFontSize += zoomStep;
+                        updateFontSize();
+                    } else if (event.deltaY > 0 && currentFontSize > minFontSize) {
+                        // Прокрутка вниз - уменьшение масштаба
+                        currentFontSize -= zoomStep;
+                        updateFontSize();
+                    }
+                }
+            }, { passive: false });
+            
+            // Устанавливаем начальный размер шрифта
+            updateFontSize();
+            
+            console.log('PDF zoom controls initialized');
+        }
+
+        // Запускаем инициализацию после загрузки страницы
+        document.addEventListener('DOMContentLoaded', () => {
+            initializePdfZoom();
+            initializeTextHighlighter(); 
         });
     </script>
     

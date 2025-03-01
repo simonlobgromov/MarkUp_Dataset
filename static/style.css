@@ -156,7 +156,7 @@ button, .control-btn {
 }
 
 /* PDF content area */
-.pdf-content {
+/* .pdf-content {
     background-color: #f5f5f5;
     padding: 20px;
     border-radius: 4px;
@@ -166,7 +166,7 @@ button, .control-btn {
 .pdf-content pre {
     white-space: pre-wrap;
     word-wrap: break-word;
-}
+} */
 
 /* Time display */
 .time-display {
@@ -417,7 +417,7 @@ input[type="range"]::-moz-range-thumb {
     text-align: center;
 }
 /* PDF content area with scrolling */
-.pdf-content {
+/* .pdf-content {
     background-color: #f5f5f5;
     padding: 20px;
     border-radius: 4px;
@@ -427,6 +427,52 @@ input[type="range"]::-moz-range-thumb {
 .pdf-content h2 {
     margin-top: 0;
     margin-bottom: 15px;
+}
+
+.pdf-content-scroll {
+    max-height: 400px; /* Фиксированная высота блока */
+    /* overflow-y: auto; /* Вертикальная прокрутка */
+    /* border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    background-color: white; */ 
+/* }
+
+.pdf-content pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    padding: 15px;
+    margin: 0;
+} */ */
+
+/* PDF content area with scrolling and zoom controls */
+
+.pdf-content {
+    background-color: #f5f5f5;
+    padding: 20px;
+    border-radius: 4px;
+    margin-top: 20px;
+}
+
+.pdf-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.pdf-header h2 {
+    margin: 0;
+}
+
+.pdf-controls {
+    display: flex;
+    gap: 5px;
+}
+
+.zoom-btn {
+    min-width: 40px;
+    padding: 5px 10px;
+    font-weight: bold;
 }
 
 .pdf-content-scroll {
@@ -442,4 +488,6 @@ input[type="range"]::-moz-range-thumb {
     word-wrap: break-word;
     padding: 15px;
     margin: 0;
+    font-size: 16px; /* Базовый размер шрифта */
+    transition: font-size 0.2s ease; /* Плавное изменение размера */
 }
