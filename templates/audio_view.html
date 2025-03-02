@@ -111,6 +111,20 @@
             isDragging: false,
             lastX: 0
         };
+        
+        // Global text selection handler
+        document.addEventListener('mouseup', function() {
+            // Only capture selection if we have PDF content
+            if (document.querySelector('.pdf-content')) {
+                const selection = window.getSelection();
+                const selectedText = selection.toString().trim();
+                
+                if (selectedText && window.textHighlighterState) {
+                    console.log('Global text selection captured:', selectedText);
+                    window.textHighlighterState.selectedText = selectedText;
+                }
+            }
+        });
 
         // Create WaveSurfer instance с плагинами
         const wavesurfer = WaveSurfer.create({
@@ -244,6 +258,32 @@
             
             // Use the last selected region
             window.selectedRegion = regions[regions.length - 1];
+            
+            // Capture any selected text from the PDF content
+            const selection = window.getSelection();
+            const selectedText = selection.toString().trim();
+            
+            if (selectedText) {
+                console.log('Text selected when opening modal:', selectedText);
+                // Store the selected text in the region data
+                if (!window.selectedRegion.data) {
+                    window.selectedRegion.data = {};
+                }
+                window.selectedRegion.data.selectedText = selectedText;
+            } else if (window.textHighlighterState && window.textHighlighterState.selectedText) {
+                // Use the text from textHighlighterState if available
+                console.log('Using previously selected text:', window.textHighlighterState.selectedText);
+                if (!window.selectedRegion.data) {
+                    window.selectedRegion.data = {};
+                }
+                window.selectedRegion.data.selectedText = window.textHighlighterState.selectedText;
+            }
+            
+            // Pre-fill the comment field with selected text if available
+            if (window.selectedRegion.data && window.selectedRegion.data.selectedText) {
+                commentText.value = window.selectedRegion.data.selectedText;
+            }
+            
             modal.style.display = 'block';
             commentText.focus();
         });
@@ -267,13 +307,24 @@
             const region = window.selectedRegion;
             const comment = commentText.value.trim();
             
+            // Get the selected text from the region data or from the global state
+            let selectedText = '';
+            if (region.data && region.data.selectedText) {
+                selectedText = region.data.selectedText;
+            } else if (window.textHighlighterState && window.textHighlighterState.selectedText) {
+                selectedText = window.textHighlighterState.selectedText;
+            }
+            
+            console.log('Saving region with selected text:', selectedText);
+            
             // Create data for request
             const data = {
                 audio_filename: window.appData.audioFilename,
                 start: region.start,
                 end: region.end,
                 comment: comment,
-                username: window.appData.username
+                username: window.appData.username,
+                selected_text: selectedText
             };
             
             // Send request to server
@@ -294,7 +345,8 @@
                             saved: true,
                             comment: comment,
                             filename: data.filename,
-                            username: window.appData.username
+                            username: window.appData.username,
+                            selectedText: selectedText
                         }
                     });
                     
@@ -303,6 +355,11 @@
                         region.setContent(comment.length > 20 ? comment.substring(0, 17) + '...' : comment);
                     } else {
                         region.setContent('Saved');
+                    }
+                    
+                    // Reset the selected text after saving
+                    if (window.textHighlighterState) {
+                        window.textHighlighterState.selectedText = '';
                     }
                     
                     alert(`Fragment successfully saved: ${data.filename}`);
@@ -336,7 +393,8 @@
                                 saved: true,
                                 comment: savedRegion.comment,
                                 filename: savedRegion.filename,
-                                username: savedRegion.username || window.appData.username
+                                username: savedRegion.username || window.appData.username,
+                                selectedText: savedRegion.selected_text || ''
                             }
                         });
                         
@@ -349,6 +407,13 @@
                         }
                         
                         region.setContent(content);
+                        
+                        // If there's selected text and PDF content, highlight it
+                        if (savedRegion.selected_text && document.querySelector('.pdf-content')) {
+                            setTimeout(() => {
+                                highlightSavedText(savedRegion.selected_text, savedRegion.filename);
+                            }, 500);
+                        }
                     });
                     
                     console.log(`Loaded ${data.regions.length} saved fragments`);

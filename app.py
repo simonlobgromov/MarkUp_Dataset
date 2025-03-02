@@ -137,6 +137,7 @@ def save_region():
         end = data.get('end')
         comment = data.get('comment', '')
         username = data.get('username') or session.get('username', 'Anonymous')
+        selected_text = data.get('selected_text', '')  # Получаем выделенный текст из запроса
         
         # Проверка входных данных
         if not audio_filename or start is None or end is None:
@@ -184,7 +185,8 @@ def save_region():
             'comment': comment,
             'timestamp': timestamp,
             'output_file': new_filename,
-            'username': username
+            'username': username,
+            'selected_text': selected_text  # Добавляем выделенный текст в метаданные
         }
         
         with open(metadata_path, 'w', encoding='utf-8') as f:
@@ -197,6 +199,14 @@ def save_region():
             
             with open(comment_path, 'w', encoding='utf-8') as f:
                 f.write(comment)
+        
+        # Сохраняем выделенный текст в отдельный файл, если он есть
+        if selected_text:
+            selected_text_filename = f"{base_name}_{timestamp}_selected.txt"
+            selected_text_path = os.path.join(app.config['OUTPUT_FOLDER'], selected_text_filename)
+            
+            with open(selected_text_path, 'w', encoding='utf-8') as f:
+                f.write(selected_text)
         
         return jsonify({'success': True, 'filename': new_filename})
     
@@ -228,7 +238,8 @@ def get_saved_regions():
                         'end': metadata.get('end_time'),
                         'comment': metadata.get('comment', ''),
                         'filename': metadata.get('output_file'),
-                        'username': metadata.get('username', 'Anonymous')
+                        'username': metadata.get('username', 'Anonymous'),
+                        'selected_text': metadata.get('selected_text', '')
                     })
         
         return jsonify({'success': True, 'regions': regions})

@@ -4,8 +4,12 @@
 let textHighlighterState = {
     commentText: '',
     lastRegionData: null,
-    initialized: false
+    initialized: false,
+    selectedText: ''
 };
+
+// Делаем состояние доступным глобально
+window.textHighlighterState = textHighlighterState;
 
 // Инициализация обработчиков событий для работы с текстом
 function initializeTextSelection() {
@@ -46,6 +50,36 @@ function initializeTextSelection() {
         if (!preElement.id) {
             preElement.id = 'pdfTextContent';
         }
+    }
+    
+    // Добавляем обработчик выделения текста
+    const pdfTextContent = document.getElementById('pdfTextContent') || 
+                          document.querySelector('.pdf-content pre');
+    
+    if (pdfTextContent) {
+        // Обработчик события выделения текста
+        pdfTextContent.addEventListener('mouseup', function() {
+            const selection = window.getSelection();
+            const selectedText = selection.toString().trim();
+            
+            if (selectedText) {
+                console.log('Text selected:', selectedText);
+                textHighlighterState.selectedText = selectedText;
+                
+                // Если модальное окно открыто, автоматически заполняем поле комментария
+                const commentField = document.querySelector('.modal textarea') || 
+                                    document.querySelector('.modal input[type="text"]');
+                
+                if (commentField && document.querySelector('.modal').style.display === 'block') {
+                    if (!commentField.value.trim()) {
+                        commentField.value = selectedText;
+                        textHighlighterState.commentText = selectedText;
+                    }
+                }
+            }
+        });
+        
+        console.log('Added text selection handler to PDF content');
     }
     
     // Преобразуем структуру заголовка, чтобы добавить кнопку копирования
@@ -238,6 +272,21 @@ function setupModalHandlers() {
                         document.querySelector('.modal input[type="text"]');
     
     if (commentField) {
+        // Получаем выделенный текст при открытии модального окна
+        const selection = window.getSelection();
+        const selectedText = selection.toString().trim();
+        
+        // Сохраняем выделенный текст в состоянии
+        if (selectedText) {
+            textHighlighterState.selectedText = selectedText;
+            
+            // Если поле комментария пустое, заполняем его выделенным текстом
+            if (!commentField.value.trim()) {
+                commentField.value = selectedText;
+                textHighlighterState.commentText = selectedText;
+            }
+        }
+        
         // Следим за изменениями в поле комментария
         commentField.addEventListener('input', function() {
             textHighlighterState.commentText = this.value.trim();
@@ -253,6 +302,15 @@ function setupModalHandlers() {
                 // Сохраняем текущий текст комментария
                 textHighlighterState.commentText = commentField.value.trim();
                 console.log('Save button clicked, comment:', textHighlighterState.commentText);
+                
+                // Добавляем выделенный текст к данным региона
+                if (window.selectedRegion && textHighlighterState.selectedText) {
+                    if (!window.selectedRegion.data) {
+                        window.selectedRegion.data = {};
+                    }
+                    window.selectedRegion.data.selectedText = textHighlighterState.selectedText;
+                    console.log('Added selected text to region data:', textHighlighterState.selectedText);
+                }
             });
         }
     }
