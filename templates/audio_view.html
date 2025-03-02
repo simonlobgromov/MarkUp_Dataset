@@ -347,7 +347,9 @@
                             filename: data.filename,
                             username: window.appData.username,
                             selectedText: selectedText
-                        }
+                        },
+                        drag: false,  // Prevent dragging of saved regions
+                        resize: false // Prevent resizing of saved regions
                     });
                     
                     // Add label with comment only (без имени пользователя)
@@ -395,7 +397,9 @@
                                 filename: savedRegion.filename,
                                 username: savedRegion.username || window.appData.username,
                                 selectedText: savedRegion.selected_text || ''
-                            }
+                            },
+                            drag: false,  // Prevent dragging of saved regions
+                            resize: false // Prevent resizing of saved regions
                         });
                         
                         // Add label with comment only (без имени пользователя)

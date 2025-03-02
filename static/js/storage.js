@@ -105,7 +105,9 @@ function saveRegion() {
                     saved: true,
                     comment: comment,
                     filename: data.filename
-                }
+                },
+                drag: false,  // Запрещаем перемещение сохраненных регионов
+                resize: false // Запрещаем изменение размера сохраненных регионов
             });
             
             // Добавляем метку с комментарием
@@ -159,7 +161,9 @@ export async function loadSavedRegions(audioFilename) {
                         saved: true,
                         comment: savedRegion.comment,
                         filename: savedRegion.filename
-                    }
+                    },
+                    drag: false,  // Запрещаем перемещение сохраненных регионов
+                    resize: false // Запрещаем изменение размера сохраненных регионов
                 });
                 
                 // Добавляем метку с комментарием
