@@ -290,6 +290,7 @@ function processLastSavedRegion() {
 }
 
 // Подсветка сохраненного текста и связывание с аудио-фрагментом
+
 function highlightSavedText(text, fragmentName) {
     if (!text || !fragmentName) {
         console.warn('Missing text or fragment name for highlighting');
@@ -309,83 +310,165 @@ function highlightSavedText(text, fragmentName) {
     // Получаем данные о временном интервале
     let startTime = 0;
     let endTime = 0;
-    let timeInfoText = '';
+    let duration = 0;
     
-    // Пытаемся найти временной интервал из соответствующего региона
-    if (window.wavesurfer && window.wavesurfer.regions) {
-        const regions = window.wavesurfer.regions.getRegions();
-        const targetRegion = regions.find(r => r.data && r.data.filename === fragmentName);
-        
-        if (targetRegion) {
-            startTime = targetRegion.start;
-            endTime = targetRegion.end;
+    // Сначала попробуем получить данные от сервера
+    fetch(`/get_fragment_data?filename=${encodeURIComponent(fragmentName)}`)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Используем данные из JSON
+            startTime = data.fragment.start_time;
+            endTime = data.fragment.end_time;
+            duration = data.fragment.duration;
             
-            // Форматируем время в понятный вид (мм:сс.мс)
-            timeInfoText = `${formatTime(startTime)} - ${formatTime(endTime)}`;
-            console.log('Found time interval:', timeInfoText);
+            console.log(`Got time data from server: start=${startTime}, end=${endTime}, duration=${duration}`);
+            
+            // Теперь у нас есть правильные временные метки, можем продолжить выделение текста
+            completeHighlighting();
+        } else {
+            // Если не удалось получить данные от сервера, попробуем найти в регионах
+            console.warn("Could not get fragment data from server, trying regions...");
+            findInRegions();
         }
-    }
+    })
+    .catch(error => {
+        console.error("Error fetching fragment data:", error);
+        findInRegions();
+    });
     
-    // Если мы не нашли время из региона, попробуем получить его из state
-    if (!timeInfoText && window.state && window.state.selectedRegion) {
-        startTime = window.state.selectedRegion.start;
-        endTime = window.state.selectedRegion.end;
-        timeInfoText = `${formatTime(startTime)} - ${formatTime(endTime)}`;
-        console.log('Got time interval from state:', timeInfoText);
-    }
-    
-    // Ищем вхождение текста в содержимом PDF
-    const htmlContent = pdfContentText.innerHTML;
-    // Экранируем спецсимволы в тексте для использования в регулярном выражении
-    const escapedText = text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    
-    // Создаем уникальный ID для этого выделения
-    const highlightId = 'highlight-' + Date.now();
-    
-    // Формируем всплывающую подсказку с именем фрагмента и временным интервалом
-    const tooltipText = timeInfoText 
-        ? `${fragmentName} (${timeInfoText})` 
-        : fragmentName;
-    
-    // Заменяем текст на span с подсветкой и подписью
-    // Используем replaceAll для замены всех вхождений
-    let replacedHtml = htmlContent;
-    const regex = new RegExp(escapedText, 'g');
-    
-    if (regex.test(htmlContent)) {
-        replacedHtml = htmlContent.replace(regex, match => {
-            return `<span id="${highlightId}" class="highlighted-text" data-fragment="${fragmentName}" data-time="${timeInfoText}" title="Audio fragment: ${tooltipText}">${match}</span>`;
-        });
+    // Функция для поиска временных меток в регионах WaveSurfer
+    function findInRegions() {
+        let foundRegion = false;
         
-        pdfContentText.innerHTML = replacedHtml;
-        
-        // Добавляем обработчик клика для воспроизведения соответствующего фрагмента
-        const highlightedSpan = document.getElementById(highlightId);
-        if (highlightedSpan) {
-            highlightedSpan.addEventListener('click', () => {
-                // Проигрываем соответствующий аудио фрагмент
-                console.log('Highlighted text clicked, should play fragment:', fragmentName);
-                
-                // Пытаемся найти соответствующий регион и воспроизвести его
-                if (window.wavesurfer && window.wavesurfer.regions) {
-                    const regions = window.wavesurfer.regions.getRegions();
-                    const targetRegion = regions.find(r => r.data && r.data.filename === fragmentName);
-                    
-                    if (targetRegion) {
-                        targetRegion.play();
-                    } else {
-                        // Если регион не найден, начинаем воспроизведение с текущей позиции
-                        window.wavesurfer.play();
-                    }
+        // Пытаемся найти временной интервал из соответствующего региона
+        if (window.wavesurfer && window.regionsPlugin) {
+            const regions = window.regionsPlugin.getRegions();
+            console.log("Available regions:", regions.length);
+            
+            // Сначала ищем регион по имени файла
+            const targetRegion = regions.find(r => r.data && r.data.filename === fragmentName);
+            
+            if (targetRegion) {
+                console.log("Found region by filename:", targetRegion);
+                startTime = targetRegion.start;
+                endTime = targetRegion.end;
+                duration = endTime - startTime;
+                foundRegion = true;
+            } else {
+                // Если не найден по имени файла, попробуем найти по комментарию
+                const regionByComment = regions.find(r => r.data && r.data.comment && r.data.comment.includes(text));
+                if (regionByComment) {
+                    console.log("Found region by comment:", regionByComment);
+                    startTime = regionByComment.start;
+                    endTime = regionByComment.end;
+                    duration = endTime - startTime;
+                    foundRegion = true;
                 }
+            }
+        }
+        
+        // Если мы не нашли время из региона, попробуем еще один способ
+        if (!foundRegion && window.state && window.state.savedRegions) {
+            const savedRegion = window.state.savedRegions.find(r => r.filename === fragmentName);
+            if (savedRegion) {
+                startTime = savedRegion.start;
+                endTime = savedRegion.end;
+                duration = endTime - startTime;
+                foundRegion = true;
+                console.log("Found in saved regions:", savedRegion);
+            }
+        }
+        
+        // Продолжаем с выделением текста
+        completeHighlighting();
+    }
+    
+    // Функция для завершения выделения текста с найденными временными метками
+    function completeHighlighting() {
+        console.log(`Final time values: start=${startTime}, end=${endTime}, duration=${duration}`);
+        
+        // Формируем текст подсказки с временными кодами
+        const tooltipText = `Selected fragment: ${formatTime(startTime)} - ${formatTime(endTime)} (duration: ${formatTime(duration)})`;
+        
+        // Ищем вхождение текста в содержимом PDF
+        const htmlContent = pdfContentText.innerHTML;
+        // Экранируем спецсимволы в тексте для использования в регулярном выражении
+        const escapedText = text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        
+        // Создаем уникальный ID для этого выделения
+        const highlightId = 'highlight-' + Date.now();
+        
+        // Заменяем текст на span с подсветкой
+        let replacedHtml = htmlContent;
+        const regex = new RegExp(escapedText, 'g');
+        
+        if (regex.test(htmlContent)) {
+            replacedHtml = htmlContent.replace(regex, match => {
+                // Добавляем все необходимые атрибуты для работы с выделением
+                return `<span id="${highlightId}" class="highlighted-text" 
+                            data-fragment="${fragmentName}" 
+                            data-start="${startTime}" 
+                            data-end="${endTime}" 
+                            data-duration="${duration}"
+                            data-tooltip="${tooltipText}">${match}</span>`;
             });
             
-            console.log('Text highlighted and linked to audio fragment:', tooltipText);
+            pdfContentText.innerHTML = replacedHtml;
+            
+            // Добавляем обработчик клика для воспроизведения соответствующего фрагмента
+            const highlightedSpan = document.getElementById(highlightId);
+            if (highlightedSpan) {
+                highlightedSpan.addEventListener('click', () => {
+                    console.log('Highlighted text clicked, playing fragment with times:', 
+                                startTime, endTime, duration);
+                    
+                    // Пытаемся найти соответствующий регион и воспроизвести его
+                    if (window.wavesurfer && window.regionsPlugin) {
+                        // Получаем регионы из плагина
+                        const regions = window.regionsPlugin.getRegions();
+                        
+                        // Сначала пробуем найти по имени файла
+                        let targetRegion = regions.find(r => r.data && r.data.filename === fragmentName);
+                        
+                        // Если не найден, пробуем найти по времени
+                        if (!targetRegion) {
+                            targetRegion = regions.find(r => {
+                                const startDiff = Math.abs(r.start - startTime);
+                                const endDiff = Math.abs(r.end - endTime);
+                                return startDiff < 0.1 && endDiff < 0.1; // допуск 0.1 секунды
+                            });
+                        }
+                        
+                        if (targetRegion) {
+                            targetRegion.play();
+                        } else {
+                            // Если регион не найден, но у нас есть времена, используем их напрямую
+                            // Перемещаемся к началу фрагмента
+                            window.wavesurfer.setTime(startTime);
+                            
+                            // Запускаем воспроизведение
+                            window.wavesurfer.play();
+                            
+                            // Останавливаем воспроизведение, когда достигнем конца фрагмента
+                            const checkInterval = setInterval(() => {
+                                const currentTime = window.wavesurfer.getCurrentTime();
+                                if (currentTime >= endTime) {
+                                    window.wavesurfer.pause();
+                                    clearInterval(checkInterval);
+                                }
+                            }, 100);
+                        }
+                    }
+                });
+                
+                console.log('Text highlighted and linked to audio fragment with tooltip:', tooltipText);
+            } else {
+                console.warn('Highlighting span not found after insertion');
+            }
         } else {
-            console.warn('Highlighting span not found after insertion');
+            console.warn('Text not found in PDF content:', text);
         }
-    } else {
-        console.warn('Text not found in PDF content:', text);
     }
 }
 

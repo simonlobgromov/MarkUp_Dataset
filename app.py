@@ -236,5 +236,37 @@ def get_saved_regions():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
+# Добавьте этот новый маршрут в app.py
+
+@app.route('/get_fragment_data', methods=['GET'])
+def get_fragment_data():
+    try:
+        filename = request.args.get('filename')
+        if not filename:
+            return jsonify({'success': False, 'error': 'Не указано имя файла фрагмента'})
+        
+        # Извлекаем базовое имя файла без расширения
+        base_name = os.path.splitext(filename)[0]
+        
+        # Формируем имя JSON-файла
+        json_filename = f"{base_name}.json"
+        json_path = os.path.join(app.config['OUTPUT_FOLDER'], json_filename)
+        
+        # Проверяем, существует ли JSON-файл
+        if not os.path.exists(json_path):
+            return jsonify({'success': False, 'error': 'Метаданные фрагмента не найдены'})
+        
+        # Загружаем JSON-данные
+        with open(json_path, 'r', encoding='utf-8') as f:
+            fragment_data = json.load(f)
+            
+        return jsonify({
+            'success': True, 
+            'fragment': fragment_data
+        })
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
 if __name__ == '__main__':
     app.run(debug=True, port=8000)

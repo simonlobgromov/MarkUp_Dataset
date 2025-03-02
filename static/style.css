@@ -541,7 +541,71 @@ input[type="range"]::-moz-range-thumb {
 }
 
 /* Всплывающая подсказка с названием аудио-фрагмента */
+
+/* Всплывающая подсказка с улучшенным отображением */
+.highlighted-text {
+    background-color: rgba(46, 204, 113, 0.3);
+    border-radius: 2px;
+    padding: 0 2px;
+    margin: 0 -2px;
+    cursor: pointer;
+    position: relative; /* Важно для правильного позиционирования подсказки */
+    border-bottom: 1px dashed #2ecc71;
+    transition: background-color 0.2s ease;
+}
+
+.highlighted-text:hover {
+    background-color: rgba(46, 204, 113, 0.5);
+}
+
+.highlighted-text:active {
+    background-color: rgba(46, 204, 113, 0.7);
+}
+
+/* Улучшенная подсказка с более широким отображением */
 .highlighted-text::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    background-color: rgba(0, 0, 0, 0.85);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: monospace; /* Для лучшего отображения временных кодов */
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+    z-index: 1000;
+    white-space: nowrap; /* Важно для предотвращения переноса */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    transform: translateY(-5px); /* Небольшое смещение вверх */
+    min-width: max-content; /* Важно! Предотвращает обрезание */
+    max-width: none; /* Убираем ограничение по ширине */
+    
+    /* Для обеспечения видимости, если подсказка выходит за границы экрана */
+    margin-bottom: 5px;
+    line-height: 1.5;
+    font-weight: normal;
+    text-align: left;
+}
+
+.highlighted-text:hover::after {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Подсказка должна быть видима, даже если выходит за край экрана */
+@media (max-width: 768px) {
+    .highlighted-text::after {
+        left: 50%;
+        transform: translateX(-50%) translateY(-5px);
+        width: auto;
+    }
+}
+
+/* .highlighted-text::after {
     content: attr(data-fragment) " (" attr(data-time) ")";
     position: absolute;
     bottom: 100%;
@@ -561,4 +625,4 @@ input[type="range"]::-moz-range-thumb {
 
 .highlighted-text:hover::after {
     opacity: 1;
-}
+} */
