@@ -61,6 +61,11 @@ function handleDoubleClick(time, event) {
 
 // Обработка нажатия клавиш
 function handleKeyDown(event) {
+    // Игнорируем клавиатурные сокращения, когда фокус находится в полях ввода или текстовых областях
+    if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
+        return;
+    }
+    
     // Space - play/pause
     if (event.code === 'Space') {
         event.preventDefault();

@@ -516,6 +516,11 @@
 
         // Add keyboard shortcuts
         document.addEventListener('keydown', (e) => {
+            // Ignore keyboard shortcuts when focus is in input fields or textareas
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+                return;
+            }
+            
             // Space - play/pause
             if (e.code === 'Space') {
                 e.preventDefault();

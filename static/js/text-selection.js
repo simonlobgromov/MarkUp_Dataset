@@ -319,12 +319,7 @@ function setupModalHandlers() {
 // Обработка последнего сохраненного региона
 function processLastSavedRegion() {
     // Получаем информацию о текущем аудио-фрагменте и его комментарии
-    if (!textHighlighterState.commentText) {
-        console.log('No comment text to highlight');
-        return;
-    }
-    
-    console.log('Processing saved region with comment:', textHighlighterState.commentText);
+    console.log('Processing saved region');
     
     // Получаем данные региона (из объекта state или из последних сохраненных данных)
     let regionData = null;
@@ -340,23 +335,39 @@ function processLastSavedRegion() {
         return;
     }
     
+    // Определяем текст для подсветки
+    // Приоритет: 1) selectedText из данных региона, 2) commentText из состояния
+    const textToHighlight = regionData.selectedText || textHighlighterState.commentText;
+    
+    if (!textToHighlight) {
+        console.warn('No text to highlight');
+        return;
+    }
+    
+    console.log('Highlighting text:', textToHighlight, 'for region:', regionData.filename);
+    
     // Подсвечиваем текст в PDF
-    highlightSavedText(textHighlighterState.commentText, regionData.filename);
+    highlightSavedText(textToHighlight, regionData.filename);
     
     // Сбрасываем сохраненные данные
     textHighlighterState.commentText = '';
 }
 
 // Подсветка сохраненного текста и связывание с аудио-фрагментом
-
 function highlightSavedText(text, fragmentName) {
-    if (!text || !fragmentName) {
-        console.warn('Missing text or fragment name for highlighting');
+    if (!text) {
+        console.warn('No text provided for highlighting');
         return;
     }
     
-    console.log(`Highlighting text "${text}" with fragment "${fragmentName}"`);
+    if (!fragmentName) {
+        console.warn('No fragment name provided for highlighting');
+        return;
+    }
     
+    console.log('Attempting to highlight text:', text, 'for fragment:', fragmentName);
+    
+    // Получаем элемент с содержимым PDF
     const pdfContentText = document.getElementById('pdfTextContent') || 
                           document.querySelector('.pdf-content pre');
     
@@ -379,6 +390,13 @@ function highlightSavedText(text, fragmentName) {
             startTime = data.fragment.start_time;
             endTime = data.fragment.end_time;
             duration = data.fragment.duration;
+            
+            // Проверяем, есть ли в данных selected_text, и если есть, используем его вместо переданного текста
+            const selectedText = data.fragment.selected_text;
+            if (selectedText && selectedText.trim()) {
+                console.log('Using selected_text from server data instead of comment:', selectedText);
+                text = selectedText;
+            }
             
             console.log(`Got time data from server: start=${startTime}, end=${endTime}, duration=${duration}`);
             
@@ -413,15 +431,33 @@ function highlightSavedText(text, fragmentName) {
                 endTime = targetRegion.end;
                 duration = endTime - startTime;
                 foundRegion = true;
+                
+                // Проверяем, есть ли в данных selected_text, и если есть, используем его
+                if (targetRegion.data && targetRegion.data.selectedText) {
+                    console.log('Using selectedText from region data:', targetRegion.data.selectedText);
+                    text = targetRegion.data.selectedText;
+                }
             } else {
-                // Если не найден по имени файла, попробуем найти по комментарию
-                const regionByComment = regions.find(r => r.data && r.data.comment && r.data.comment.includes(text));
-                if (regionByComment) {
-                    console.log("Found region by comment:", regionByComment);
-                    startTime = regionByComment.start;
-                    endTime = regionByComment.end;
+                // Если не найден по имени файла, попробуем найти по комментарию или selected_text
+                const regionByText = regions.find(r => {
+                    return r.data && (
+                        (r.data.comment && r.data.comment.includes(text)) || 
+                        (r.data.selectedText && r.data.selectedText.includes(text))
+                    );
+                });
+                
+                if (regionByText) {
+                    console.log("Found region by text content:", regionByText);
+                    startTime = regionByText.start;
+                    endTime = regionByText.end;
                     duration = endTime - startTime;
                     foundRegion = true;
+                    
+                    // Используем selectedText из найденного региона, если он есть
+                    if (regionByText.data && regionByText.data.selectedText) {
+                        console.log('Using selectedText from found region:', regionByText.data.selectedText);
+                        text = regionByText.data.selectedText;
+                    }
                 }
             }
         }
@@ -435,6 +471,12 @@ function highlightSavedText(text, fragmentName) {
                 duration = endTime - startTime;
                 foundRegion = true;
                 console.log("Found in saved regions:", savedRegion);
+                
+                // Используем selected_text из сохраненного региона, если он есть
+                if (savedRegion.selected_text) {
+                    console.log('Using selected_text from saved region:', savedRegion.selected_text);
+                    text = savedRegion.selected_text;
+                }
             }
         }
         
@@ -451,27 +493,90 @@ function highlightSavedText(text, fragmentName) {
         
         // Ищем вхождение текста в содержимом PDF
         const htmlContent = pdfContentText.innerHTML;
-        // Экранируем спецсимволы в тексте для использования в регулярном выражении
-        const escapedText = text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         
         // Создаем уникальный ID для этого выделения
         const highlightId = 'highlight-' + Date.now();
         
-        // Заменяем текст на span с подсветкой
+        // Пытаемся найти текст в содержимом PDF с разными стратегиями
+        let found = false;
         let replacedHtml = htmlContent;
-        const regex = new RegExp(escapedText, 'g');
         
-        if (regex.test(htmlContent)) {
-            replacedHtml = htmlContent.replace(regex, match => {
-                // Добавляем все необходимые атрибуты для работы с выделением
-                return `<span id="${highlightId}" class="highlighted-text" 
-                            data-fragment="${fragmentName}" 
-                            data-start="${startTime}" 
-                            data-end="${endTime}" 
-                            data-duration="${duration}"
-                            data-tooltip="${tooltipText}">${match}</span>`;
-            });
-            
+        // Стратегия 1: Точное совпадение
+        if (!found) {
+            try {
+                // Экранируем спецсимволы в тексте для использования в регулярном выражении
+                const escapedText = text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const regex = new RegExp(escapedText, 'g');
+                
+                if (regex.test(htmlContent)) {
+                    console.log('Found exact text match');
+                    replacedHtml = htmlContent.replace(regex, match => {
+                        found = true;
+                        return createHighlightSpan(match, highlightId, fragmentName, startTime, endTime, duration, tooltipText);
+                    });
+                }
+            } catch (e) {
+                console.warn('Error in exact match strategy:', e);
+            }
+        }
+        
+        // Стратегия 2: Поиск по частям текста (если текст длинный)
+        if (!found && text.length > 15) {
+            try {
+                console.log('Trying partial text match');
+                // Разбиваем текст на части и ищем значимый фрагмент
+                const words = text.split(/\s+/);
+                
+                // Берем первые несколько слов (до 5) для поиска
+                if (words.length >= 3) {
+                    const searchPhrase = words.slice(0, Math.min(5, words.length)).join(' ');
+                    const escapedPhrase = searchPhrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    const phraseRegex = new RegExp(escapedPhrase, 'g');
+                    
+                    if (phraseRegex.test(htmlContent)) {
+                        console.log('Found partial text match with phrase:', searchPhrase);
+                        replacedHtml = htmlContent.replace(phraseRegex, match => {
+                            found = true;
+                            return createHighlightSpan(match, highlightId, fragmentName, startTime, endTime, duration, tooltipText);
+                        });
+                    }
+                }
+            } catch (e) {
+                console.warn('Error in partial match strategy:', e);
+            }
+        }
+        
+        // Стратегия 3: Поиск по отдельным словам (если предыдущие стратегии не сработали)
+        if (!found && text.length > 10) {
+            try {
+                console.log('Trying individual word match');
+                const words = text.split(/\s+/).filter(word => word.length > 4);
+                
+                // Сортируем слова по длине (более длинные слова обычно более уникальны)
+                words.sort((a, b) => b.length - a.length);
+                
+                // Пробуем найти самые длинные слова
+                for (let i = 0; i < Math.min(3, words.length); i++) {
+                    const word = words[i];
+                    const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    const wordRegex = new RegExp(`\\b${escapedWord}\\b`, 'g');
+                    
+                    if (wordRegex.test(htmlContent)) {
+                        console.log('Found word match with:', word);
+                        replacedHtml = htmlContent.replace(wordRegex, match => {
+                            found = true;
+                            return createHighlightSpan(match, highlightId, fragmentName, startTime, endTime, duration, tooltipText);
+                        });
+                        break; // Прекращаем поиск, если нашли совпадение
+                    }
+                }
+            } catch (e) {
+                console.warn('Error in word match strategy:', e);
+            }
+        }
+        
+        // Если нашли совпадение, обновляем HTML
+        if (found) {
             pdfContentText.innerHTML = replacedHtml;
             
             // Добавляем обработчик клика для воспроизведения соответствующего фрагмента
@@ -527,6 +632,16 @@ function highlightSavedText(text, fragmentName) {
         } else {
             console.warn('Text not found in PDF content:', text);
         }
+    }
+    
+    // Вспомогательная функция для создания span с подсветкой
+    function createHighlightSpan(text, id, fragmentName, startTime, endTime, duration, tooltip) {
+        return `<span id="${id}" class="highlighted-text" 
+                    data-fragment="${fragmentName}" 
+                    data-start="${startTime}" 
+                    data-end="${endTime}" 
+                    data-duration="${duration}"
+                    data-tooltip="${tooltip}">${text}</span>`;
     }
 }
 
