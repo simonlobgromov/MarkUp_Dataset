@@ -13,6 +13,17 @@
             <!-- Имя пользователя скрыто по требованию -->
         </div>
         
+        <!-- Simple controls - moved above the audio player -->
+        <div class="audio-controls">
+            <button id="playBtn" class="control-btn">Play/Pause</button>
+            <button id="createSelectionBtn" class="control-btn">Enable Selection</button>
+            <button id="saveSelectionBtn" class="control-btn">Save Fragment</button>
+            <div class="zoom-slider">
+                <label for="zoomRange">Zoom: </label>
+                <input type="range" id="zoomRange" min="10" max="200" value="50">
+            </div>
+        </div>
+        
         <!-- Audio player -->
         <div id="waveform-container">
             <div id="waveform"></div>
@@ -21,37 +32,8 @@
         
         <!-- Time display -->
         <div class="time-display" id="timer">00:00:000 / 00:00:000</div>
-        
-        <!-- Simple controls -->
-        <div class="audio-controls">
-            <button id="playBtn" class="control-btn">Play/Pause</button>
-            <button id="createSelectionBtn" class="control-btn">Enable Selection</button>
-            <button id="saveSelectionBtn" class="control-btn">Save Fragment</button>
-        </div>
 
-        <!-- Zoom controls -->
-        <div class="audio-controls">
-            <button id="zoomInBtn" class="control-btn">Zoom In</button>
-            <button id="zoomOutBtn" class="control-btn">Zoom Out</button>
-            <button id="resetZoomBtn" class="control-btn">Reset Zoom</button>
-            <div class="zoom-slider">
-                <label for="zoomRange">Zoom: </label>
-                <input type="range" id="zoomRange" min="10" max="200" value="50">
-            </div>
-        </div>
-
-        <!-- Selection info -->
-        <div class="selection-info">
-            <p id="selectionInfoText">Select a fragment to save</p>
-        </div>
-
-        <!-- Finish project button -->
-        <div class="finish-container">
-            <a href="{{ url_for('index') }}" class="control-btn finish-btn">Finish Project</a>
-        </div>
-
-        <!-- PDF text if available -->
-
+        <!-- PDF text if available - now positioned directly under the audio -->
         {% if pdf_text %}
         <div class="pdf-content">
             <div class="pdf-header">
@@ -68,15 +50,11 @@
         </div>
         {% endif %}
         
-        <!-- {% if pdf_text %} -->
-        <!-- <div class="pdf-content">
-            <h2>Text Content</h2>
-            <div class="pdf-content-scroll">
-                <pre>{{ pdf_text }}</pre>
-            </div>
+        <!-- Finish project button - moved to the bottom -->
+        <div class="finish-container">
+            <a href="{{ url_for('index') }}" class="control-btn finish-btn">Finish Project</a>
         </div>
-        {% endif %} -->
-
+        
     </div>
 
     <!-- Modal dialog for saving fragments -->
@@ -135,7 +113,7 @@
             barWidth: 2,
             barRadius: 3,
             cursorWidth: 1,
-            height: 150,
+            height: 110,
             minPxPerSec: 50,
             plugins: [
                 RegionsPlugin.create(),
@@ -169,32 +147,8 @@
         })
 
         // Zoom controls
-        const zoomInBtn = document.getElementById('zoomInBtn');
-        const zoomOutBtn = document.getElementById('zoomOutBtn');
-        const resetZoomBtn = document.getElementById('resetZoomBtn');
         const zoomRange = document.getElementById('zoomRange');
         const waveformContainer = document.getElementById('waveform-container');
-
-        // Zoom in
-        zoomInBtn.addEventListener('click', () => {
-            state.currentZoom = Math.min(200, state.currentZoom + 20);
-            wavesurfer.zoom(state.currentZoom);
-            zoomRange.value = state.currentZoom;
-        });
-
-        // Zoom out
-        zoomOutBtn.addEventListener('click', () => {
-            state.currentZoom = Math.max(10, state.currentZoom - 20);
-            wavesurfer.zoom(state.currentZoom);
-            zoomRange.value = state.currentZoom;
-        });
-
-        // Reset zoom
-        resetZoomBtn.addEventListener('click', () => {
-            state.currentZoom = 50;
-            wavesurfer.zoom(state.currentZoom);
-            zoomRange.value = state.currentZoom;
-        });
 
         // Zoom slider
         zoomRange.addEventListener('input', (e) => {
@@ -206,11 +160,12 @@
         waveformContainer.addEventListener('wheel', (e) => {
             if (e.ctrlKey || e.metaKey) {
                 e.preventDefault();
-                if (e.deltaY < 0) {
-                    zoomInBtn.click();
-                } else {
-                    zoomOutBtn.click();
-                }
+                const newZoom = e.deltaY < 0 
+                    ? Math.min(200, state.currentZoom + 20) 
+                    : Math.max(10, state.currentZoom - 20);
+                state.currentZoom = newZoom;
+                wavesurfer.zoom(state.currentZoom);
+                zoomRange.value = state.currentZoom;
             }
         }, { passive: false });
 
@@ -530,13 +485,15 @@
             // Ctrl+Z - zoom in
             if (e.code === 'KeyZ' && (e.ctrlKey || e.metaKey)) {
                 e.preventDefault();
-                zoomInBtn.click();
+                zoomRange.value = Math.min(200, Number(zoomRange.value) + 20);
+                wavesurfer.zoom(Number(zoomRange.value));
             }
             
             // Ctrl+X - zoom out
             if (e.code === 'KeyX' && (e.ctrlKey || e.metaKey)) {
                 e.preventDefault();
-                zoomOutBtn.click();
+                zoomRange.value = Math.max(10, Number(zoomRange.value) - 20);
+                wavesurfer.zoom(Number(zoomRange.value));
             }
             
             // Escape - close modal

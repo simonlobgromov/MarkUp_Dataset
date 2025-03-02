@@ -23,27 +23,27 @@
 /* WaveSurfer styles */
 #waveform-container {
     background-color: #f5f5f5;
-    padding: 20px;
+    padding: 15px;
     border-radius: 4px;
-    margin-bottom: 20px;
+    margin-bottom: 15px;
     overflow-x: auto;
 }
 
 #waveform {
-    margin: 20px 0;
+    margin: 15px 0;
     background: #f5f5f5;
     border-radius: 4px;
-    padding: 10px;
+    padding: 8px;
 }
 
 /* Стиль для таймлайна, созданного WaveSurfer */
 .wavesurfer-timeline {
-    height: 30px;
+    height: 25px;
     background-color: #333333;
     color: white !important;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
     font-family: monospace;
-    font-size: 11px;
+    font-size: 10px;
     border-radius: 4px;
 }
 
@@ -106,6 +106,9 @@
     margin: 20px 0;
     display: flex;
     gap: 10px;
+    width: auto;
+    max-width: fit-content;
+    justify-content: flex-start;
 }
 
 .controls label {
@@ -141,7 +144,7 @@ button, .control-btn {
 
 /* Finish button */
 .finish-container {
-    margin: 30px 0;
+    margin: 50px 0 30px 0;
     text-align: center;
 }
 
@@ -194,12 +197,19 @@ button, .control-btn {
     display: flex;
     align-items: center;
     gap: 10px;
-    flex-grow: 1;
+    margin-left: 20px;
+    max-width: 250px;
+}
+
+.zoom-slider label {
+    white-space: nowrap;
+    font-weight: 500;
+    color: #444;
 }
 
 .zoom-slider input {
     flex-grow: 1;
-    max-width: 300px;
+    width: 150px;
 }
 
 /* Modal dialog for saving fragments */
